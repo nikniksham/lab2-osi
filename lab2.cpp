@@ -2,10 +2,10 @@
 #include <iostream>
 #include <map>
 #include <unistd.h>
-#include <windows.h>
-#include <winbase.h>
 #include <cerrno>
 #include <random>
+#include <cstring>
+#include <fcntl.h>
 
 
 // Размер блока
@@ -52,53 +52,22 @@ int get_rand_from_to(int min, int max) {
 
 // Выделение памяти под кэшблок (адреса выравнены)
 char* allocate_aligned_buffer() {
-    void* buf = _aligned_malloc(BLOCK_SIZE, BLOCK_SIZE);
-    if (buf == nullptr) {
+    void* buf = nullptr;
+    if (posix_memalign(&buf, BLOCK_SIZE, BLOCK_SIZE) != 0) {
         errno = EBADF;
+        std::cerr<<"Cant allocate aligned buffer";
         return nullptr;
     }
     return static_cast<char*>(buf);
 }
 
-// Реализация pread вручную
-ssize_t windows_pread(int fd, void *buf, int count, int start_pos) {
-    if (lseek(fd, start_pos, SEEK_SET) == -1) {
-        errno = EFAULT;
-        perror("Cant lseek (pread)");
-        return -1;
-    }
-    const auto buffer = static_cast<char*>(buf);
-    ssize_t res = read(fd, buffer, count);
-    std::cout<<"--------------------->>> "<<count<<"\n";
 
-    if (res < 0) {
-        perror("Cant read (pread)");
-        errno = EIO;
-    }
-    return res;
-}
-
-// Реализация pwrite вручную
-ssize_t windows_pwrite(int fd, void *buf, int count, int start_pos) {
-    if (lseek(fd, start_pos, SEEK_SET) == -1) {
-        errno = EFAULT;
-        perror("Cant lseek (pwrite)");
-        return -1;
-    }
-    const auto buffer = static_cast<char*>(buf);
-    ssize_t res = write(fd, buffer, count);
-    if (res < 0) {
-        errno = EIO;
-        perror("Cant write (pwrite)");
-    }
-    return res;
-}
 
 // Запись кэшблока на диск
 int write_cache_block(int fd, void *buf, int count, int start_pos) {
-    ssize_t ret = windows_pwrite(fd, static_cast<char*>(buf), count, start_pos);
+    ssize_t ret = pwrite(fd, static_cast<char*>(buf), count, start_pos);
     if (ret != count) {
-        perror("Cant write cache_block");
+        std::cerr<<"Cant write cache_block\n";
         return -1;
     }
     return 0;
@@ -112,7 +81,7 @@ void free_cache_block(int found_fd) {
             if (rn_id == 0) {
                 if (obj.second.dirty_data) {
                     if (write_cache_block(found_fd, obj.second.data, (int)obj.second.useful_data, obj.first.second * BLOCK_SIZE) != 0) {
-                        perror("Cant flush block (free cache block)");
+                        std::cerr<<"Cant flush block (free cache block)\n";
                         return;
                     }
                     obj.second.dirty_data = false;
@@ -127,9 +96,9 @@ void free_cache_block(int found_fd) {
 // Открытие файла
 int lab2_open(const char* path) {
     // Отключаем буферизацию
-    const int fd = open(path, FILE_FLAG_NO_BUFFERING | std::ios::in | std::ios::out);
+    const int fd = open(path, O_DIRECT, NULL);
     if (fd < 0) {
-        perror("Cant open file");
+        std::cerr<<"Cant open file\n";
         return -1;
     }
 
@@ -141,7 +110,7 @@ int lab2_open(const char* path) {
 int lab2_close(const int fd) {
     const auto iterator = fd_table.find(fd);
     if (iterator == fd_table.end()) {
-        perror("Bad fd, cant close");
+        std::cerr<<"Bad fd, cant close\n";
         return -1;
     }
     lab2_fsync(fd);
@@ -177,13 +146,12 @@ ssize_t lab2_read(const int fd, void *buf, const size_t count) {
 
             CacheBlock& found_block = cache_iterator->second;
 //            std::cout<<"("<<block_id<<") --------------------- "<<key.first<<" --- "<<key.second<<"\n"<<found_block.data<<"\n";
-            std::cout<<"("<<block_id<<") --------------------- "<<key.first<<" --- "<<key.second<<"\n";
+//            std::cout<<"("<<block_id<<") --------------------- "<<key.first<<" --- "<<key.second<<"\n";
             // Получаем количество байт, которое можем прочесть, как <полезная дата> - (<размер блока> - <смещение в блоке>)
             ssize_t available_bytes = found_block.useful_data - (int)block_offset;
 
             // На случай, если что ничего прочесть не можем (полезной даты первые 300 байт, надо читать с 500-ого)
             if (available_bytes <= 0) {
-                std::cout<<"huesoska\n";
                 break;
             }
 
@@ -203,19 +171,17 @@ ssize_t lab2_read(const int fd, void *buf, const size_t count) {
 
             // Создаём будущий кэшблок и читаем в него
             char* aligned_buf = allocate_aligned_buffer();
-            const ssize_t valid_read = windows_pread(found_fd, aligned_buf, BLOCK_SIZE, block_id * BLOCK_SIZE);
-            std::cout<<valid_read<<"---------------------"<<key.first<<" --- "<<key.second<<"\n";
+            const ssize_t valid_read = pread(found_fd, aligned_buf, BLOCK_SIZE, block_id * BLOCK_SIZE);
+//            std::cout<<valid_read<<"---------------------"<<key.first<<" --- "<<key.second<<"\n";
 //            std::cout<<valid_read<<"---------------------"<<key.first<<" --- "<<key.second<<"\n"<<aligned_buf<<"\n";
             // Проверки на ошибки чтение и окончание файла
             if (valid_read < 0) {
                 free(aligned_buf);
-                perror("Cant read file to cache");
-                std::cout<<"suka"<<std::endl;
+                std::cerr<<"Cant read file to cache\n";
                 return -1;
             }
             if (valid_read == 0) {
                 free(aligned_buf);
-                std::cout<<"blyadina"<<std::endl;
                 break;
             }
 
@@ -226,18 +192,17 @@ ssize_t lab2_read(const int fd, void *buf, const size_t count) {
             // Смотрим, сколько байт сможем прочесть (считаем, как <прочитанные байты в блок> - <смещение, с которого надо прочесть в блоке>)
             int available_bytes = static_cast<int>(valid_read) - static_cast<int>(block_offset);
             if (available_bytes <= 0) {
-                std::cout<<"mraz"<<std::endl;
                 break;
             }
 
             // Записываем данные из только что созданного кэшблока, ровно столько, сколько требуется
             bytes_from_block = std::min(available_bytes, iteration_read);
-            memcpy(buffer + bytes_read, aligned_buf + block_offset, bytes_from_block);
+            std::memcpy(buffer + bytes_read, aligned_buf + block_offset, bytes_from_block);
         }
         // Фиксируем результаты итерации
         file_offset += static_cast<int>(bytes_from_block);
         bytes_read += static_cast<ssize_t>(bytes_from_block);
-        std::cout<<bytes_read<<"\n";
+//        std::cout<<bytes_read<<"\n";
     }
 
     return bytes_read;
@@ -275,10 +240,10 @@ ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
 
             // Создаём кэшблок, записываем в него данные из файла
             char* aligned_buf = allocate_aligned_buffer();
-            const ssize_t valid_write = windows_pread(fd, aligned_buf, BLOCK_SIZE, BLOCK_SIZE * block_id);
+            const ssize_t valid_write = pread(fd, aligned_buf, BLOCK_SIZE, BLOCK_SIZE * block_id);
             if (valid_write < 0) {
                 free(aligned_buf);
-                perror("Cant write file to cache");
+                std::cerr<<"Cant write file to cache\n";
                 return -1;
             }
 
@@ -330,7 +295,7 @@ int lab2_fsync(int fd) {
     for (auto& [key, block] : cache_table) {
         if (key.first == found_fd && block.dirty_data) {
             if (write_cache_block(found_fd, block.data, (int)block.useful_data, key.second * BLOCK_SIZE) != 0) {
-                perror("Cant flush block (fsync)");
+                std::cerr<<"Cant flush block (fsync)\n";
                 return -1;
             }
             block.dirty_data = false;
