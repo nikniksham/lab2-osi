@@ -11,7 +11,7 @@
 // Размер блока
 #define BLOCK_SIZE 4096
 // Макс кол-во блоков
-#define MAX_BLOCKS_IN_CACHE 64
+#define MAX_BLOCKS_IN_CACHE 180
 
 // Создаем объект генератора случайных чисел, инициализируем его случайным значением
 std::random_device rd;
@@ -65,7 +65,9 @@ char* allocate_aligned_buffer() {
 
 // Запись кэшблока на диск
 int write_cache_block(int fd, void *buf, int count, int start_pos) {
+    std::cout << fd << " " << count << " " << start_pos << "\n";
     ssize_t ret = pwrite(fd, static_cast<char*>(buf), count, start_pos);
+    std::cout << ret << " " << count << "\n";
     if (ret != count) {
         std::cerr<<"Cant write cache_block\n";
         return -1;
@@ -109,7 +111,7 @@ void free_all_cache_blocks() {
 // Открытие файла
 int lab2_open(const char* path) {
     // Отключаем буферизацию
-    const int fd = open(path, O_DIRECT, NULL);
+    const int fd = open(path, O_DIRECT | O_RDWR, NULL);
     if (fd < 0) {
         std::cerr<<"Cant open file\n";
         return -1;

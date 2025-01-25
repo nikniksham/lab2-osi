@@ -12,6 +12,8 @@ CacheStats get_cache_stats();
 void reset_cache_stats();
 void free_all_cache_blocks();
 
+int get_rand_from_to(int min, int max);
+
 int lab2_open(const char *path);
 int lab2_close(int fd);
 ssize_t lab2_read(int fd, void *buf, size_t count);
