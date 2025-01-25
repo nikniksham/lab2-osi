@@ -86,10 +86,23 @@ void free_cache_block(int found_fd) {
                     }
                     obj.second.dirty_data = false;
                 }
+                if (obj.second.data != nullptr) {
+                    free(obj.second.data);
+                }
                 cache_table.erase(obj.first);
+                return;
             }
             rn_id--;
         }
+    }
+}
+
+void free_all_cache_blocks() {
+    for (auto obj = cache_table.begin(); obj != cache_table.end();) {
+        if (obj->second.data != nullptr) {
+            free(obj->second.data);
+        }
+        cache_table.erase(obj++);
     }
 }
 

@@ -9,6 +9,8 @@ struct CacheStats {
 };
 
 CacheStats get_cache_stats();
+void reset_cache_stats();
+void free_all_cache_blocks();
 
 int lab2_open(const char *path);
 int lab2_close(int fd);
