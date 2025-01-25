@@ -333,8 +333,11 @@ FileDescriptor& get_file_descriptor(const int fd) {
 }
 
 // Получение статистики работы кэша
-CacheStats get_cache_stats() {
-    return cache_stats;
+int get_cache_miss() {
+    return cache_stats.cache_miss;
+}
+int get_cache_hit() {
+    return cache_stats.cache_hits;
 }
 
 void reset_cache_stats() {

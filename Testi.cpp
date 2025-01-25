@@ -1,8 +1,22 @@
 #include <iostream>
-#include "cache/lab2.h"
 #include <chrono>
 #include <fcntl.h>
 #include <csignal>
+
+
+extern int get_cache_miss();
+extern int get_cache_hit();
+extern void reset_cache_stats();
+extern void free_all_cache_blocks();
+
+extern int get_rand_from_to(int min, int max);
+
+extern int lab2_open(const char *path);
+extern int lab2_close(int fd);
+extern ssize_t lab2_read(int fd, void *buf, size_t count);
+extern ssize_t lab2_write(int fd, const void *buf, size_t count);
+extern off_t lab2_lseek(int fd, off_t offset, int whence);
+extern int lab2_fsync(int fd);
 
 using namespace std;
 
@@ -10,7 +24,8 @@ int main() {
     bool test1 = false;
     bool test2 = false;
     bool test3 = false;
-    bool test4 = true;
+    bool test4 = false;
+    bool test5 = true;
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
     chrono::duration<double> duration;
     int fd, times;
@@ -37,9 +52,9 @@ int main() {
             lab2_lseek(fd, 0, 0);
         }
         lab2_close(fd);
-        cout << "Cache hits: " << get_cache_stats().cache_hits << ", Cache miss: " << get_cache_stats().cache_miss << endl;
         duration = chrono::high_resolution_clock::now() - start;
         cout << "Время выполнения с кэшем: " << duration.count() << " секунд.\n";
+        cout << "Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
 
 
         free_all_cache_blocks();
@@ -70,9 +85,9 @@ int main() {
             lab2_read(fd, buf, 9000);
         }
         lab2_close(fd);
-        cout << "Cache hits: " << get_cache_stats().cache_hits << ", Cache miss: " << get_cache_stats().cache_miss << endl;
         duration = chrono::high_resolution_clock::now() - start;
         cout << "Время выполнения с кэшем: " << duration.count() << " секунд.\n";
+        cout << "Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
 
 
         free_all_cache_blocks();
@@ -109,9 +124,9 @@ int main() {
         }
         lab2_fsync(fd);
         lab2_close(fd);
-        cout << "Cache hits: " << get_cache_stats().cache_hits << ", Cache miss: " << get_cache_stats().cache_miss << endl;
         duration = chrono::high_resolution_clock::now() - start;
         cout << "Время выполнения с кэшем: " << duration.count() << " секунд.\n";
+        cout << "Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
 
 
         free_all_cache_blocks();
@@ -144,11 +159,17 @@ int main() {
         lab2_close(fd1);
         lab2_close(fd2);
         lab2_close(fd3);
-        cout << "Cache hits: " << get_cache_stats().cache_hits << ", Cache miss: " << get_cache_stats().cache_miss << endl;
+        cout << "Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
 
         free_all_cache_blocks();
         reset_cache_stats();
         cout<<"\n----------------------------------------\n\n\n";
+    }
+    if (test5) {
+        char* filename = "trash.txt";
+        char *buf = new char[100];
+
+        cout<<"Тест #5 - Работа нескольких процессов с одним файлом одновременно - чтение случайного блока данных\n\n";
     }
     return 0;
 }
