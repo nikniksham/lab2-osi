@@ -24,7 +24,7 @@ int main() {
     bool test1 = false;
     bool test2 = false;
     bool test3 = false;
-    bool test4 = false;
+    bool test4 = true;
     bool test5 = true;
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
     chrono::duration<double> duration;
