@@ -1,4 +1,4 @@
-/mnt/c/Users/Inherency/CLionProjects/lab2/cmake-build-debug/CMakeFiles/lab2-lib.dir
+/mnt/c/Users/Inherency/CLionProjects/lab2/cmake-build-debug/CMakeFiles/niki2.dir
 /mnt/c/Users/Inherency/CLionProjects/lab2/cmake-build-debug/CMakeFiles/lab2.dir
 /mnt/c/Users/Inherency/CLionProjects/lab2/cmake-build-debug/CMakeFiles/edit_cache.dir
 /mnt/c/Users/Inherency/CLionProjects/lab2/cmake-build-debug/CMakeFiles/rebuild_cache.dir

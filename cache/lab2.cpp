@@ -110,7 +110,7 @@ void free_all_cache_blocks() {
 
 // Открытие файла
 int lab2_open(const char* path) {
-    std::cout<<"666666666\n";
+//    std::cout<<"666666666\n";
     // Отключаем буферизацию
     const int fd = open(path, O_DIRECT | O_RDWR, NULL);
     if (fd < 0) {

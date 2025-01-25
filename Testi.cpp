@@ -24,7 +24,7 @@ int main() {
     bool test1 = false;
     bool test2 = false;
     bool test3 = false;
-    bool test4 = true;
+    bool test4 = false;
     bool test5 = true;
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
     chrono::duration<double> duration;
@@ -167,9 +167,37 @@ int main() {
     }
     if (test5) {
         char* filename = "trash.txt";
-        char *buf = new char[100];
 
         cout<<"Тест #5 - Работа нескольких процессов с одним файлом одновременно - чтение случайного блока данных\n\n";
+
+
+        pid_t pid = fork();
+        if (pid < 0) {
+            cerr << "Форк не удался\n";
+            return -1;
+        }
+
+        if (pid == 0) {
+            char *buf = new char[100];
+            int fd2 = lab2_open(filename);
+            for (int i = 0; i < 1001; ++i) {
+                lab2_read(fd2, buf, 100);
+                lab2_lseek(fd2, 0, 0);
+            }
+            lab2_close(fd2);
+            cout << "CHILD SAY: Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
+        } else {
+            char *buf = new char[100];
+            int fd2 = lab2_open(filename);
+            for (int i = 0; i < 1001; ++i) {
+                lab2_read(fd2, buf, 100);
+                lab2_lseek(fd2, 0, 0);
+            }
+            lab2_close(fd2);
+            cout << "PARENT SAY: Cache hits: " << get_cache_hit() << ", Cache miss: " << get_cache_miss() << endl;
+        }
+
+
     }
     return 0;
 }
