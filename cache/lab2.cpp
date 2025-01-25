@@ -65,9 +65,9 @@ char* allocate_aligned_buffer() {
 
 // Запись кэшблока на диск
 int write_cache_block(int fd, void *buf, int count, int start_pos) {
-    std::cout << fd << " " << count << " " << start_pos << "\n";
+//    std::cout << fd << " " << count << " " << start_pos << "\n";
     ssize_t ret = pwrite(fd, static_cast<char*>(buf), count, start_pos);
-    std::cout << ret << " " << count << "\n";
+//    std::cout << ret << " " << count << "\n";
     if (ret != count) {
         std::cerr<<"Cant write cache_block\n";
         return -1;
@@ -230,6 +230,7 @@ ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
         errno = EBADF;
         return -1;
     }
+//    std::cout<<file_offset<<"\n-------------------\n";
     ssize_t bytes_written = 0;
     const auto buffer = static_cast<const char*>(buf);
 
@@ -271,6 +272,7 @@ ssize_t lab2_write(const int fd, const void* buf, const size_t count) {
             block_ptr = &cache_iterator->second;
         }
         // Записываем в кэшблок, теперь он содержит грязные данные
+//        std::cout<<block_offset<<" "<<bytes_written<<" "<<iteration_write<<"\n";
         memcpy(block_ptr->data + block_offset, buffer + bytes_written, iteration_write);
         block_ptr->dirty_data = true;
         // Обновляем useful_data - мы могли записать чуть больше, чем было записано в блок раньше
